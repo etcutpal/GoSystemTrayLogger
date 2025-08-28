@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"log"
 	"os"
@@ -9,6 +10,9 @@ import (
 
 	"github.com/getlantern/systray"
 )
+
+//go:embed default.ico
+var defaultIcon embed.FS
 
 // Program: GoTrayLogger - A Go application with system tray and logging features
 func main() {
@@ -54,17 +58,28 @@ func main() {
 }
 
 func startSystemTray(logger *log.Logger) error {
-	// Read icon file
-	iconData, err := os.ReadFile("icon.ico")
-	if err != nil {
-		return fmt.Errorf("error reading icon file: %v", err)
+	// Try to read custom default.ico file
+	var iconData []byte
+	var err error
+	if _, err = os.Stat("default.ico"); err == nil {
+		iconData, err = os.ReadFile("default.ico")
+		if err != nil {
+			logger.Printf("Error reading custom default.ico file: %v", err)
+		}
+	} else {
+		// Use embedded default icon if custom default.ico is not found
+		iconData, err = defaultIcon.ReadFile("default.ico")
+		if err != nil {
+			return fmt.Errorf("error reading embedded default icon file: %v", err)
+		}
+		logger.Println("Using embedded default icon due to missing default.ico")
 	}
 
 	// Start system tray
 	systray.Run(func() {
 		// Set system tray icon
 		systray.SetIcon(iconData)
-		systray.SetTitle("GoTrayLogger") // Updated to match the suggested name
+		systray.SetTitle("GoTrayLogger")
 		systray.SetTooltip("GoTrayLogger: Showing message every 10 seconds")
 
 		// Add menu items
